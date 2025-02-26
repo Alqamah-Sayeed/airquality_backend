@@ -119,21 +119,32 @@ def download_files(links):
                     except:
                         logError('Error while downloading '+link)
                 count=count+1
-#Get all the files that are available on https://portal.nccs.nasa.gov/datashare/gmao/geos-fp/forecast/
+
+# === Fetching File Links ===
 def find_files():
-    logInfo('Getting the links of files available...')
-    #link should contain GEOS.fp.fcst
-    hrefs = []
+    """Get all the files that are available"""
+    log_info('Getting the links of files available...')
+    hrefs_aer = []
+    hrefs_slv = []
+    ends = ["0130", "0430", "0730", "1030","1330","1630","1930","2230"]
     HTML_TAG_REGEX = re.compile(r'<a[^<>]+?href=([\'\"])(.*?)\1', re.IGNORECASE)
-    print(url)
-    #soup = BeautifulSoup(requests.get(url).text,'html.parser')
-    atags=[match[1] for match in HTML_TAG_REGEX.findall(requests.get(url).text)]
-    for a in atags:
-        try:
-            if 'GEOS.fp.fcst' in str(a):
-                hrefs.append(a)
-        except Exception as e:
-            logError(str(e))
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        atags = [match[1] for match in HTML_TAG_REGEX.findall(response.text)]
+        
+        for a in atags:
+            if 'GEOS.fp.fcst.tavg3_2d_aer_Nx.' in a:
+                hrefs_aer.append(a)
+            if 'GEOS.fp.fcst.tavg1_2d_slv_Nx.' in a:
+                hrefs_slv.append(a)
+        hrefs_aer = sorted(hrefs_aer)[1:25]
+        hrefs_slv = sorted(hrefs_slv)[:72]
+        hrefs = hrefs_aer +hrefs_slv
+        hrefs = [item for item in hrefs if any(keyword in item for keyword in ends)]
+        print (hrefs)
+    except requests.RequestException as e:
+        log_error(f"Failed to retrieve file list: {e}")
     return hrefs
 
 #Subset the dataset and remove unnecessary fields for 1 hour data
